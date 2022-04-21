@@ -1,0 +1,18 @@
+filter:
+  ros__parameters:
+
+    filter:
+      type: butterworth
+    
+    butterworth_filter:
+      sampling_rate: 10.0
+      cutoff_frequency: 1.0
+
+    publishers:
+      filtered_signal: /signal_filter
+
+    subscribers:
+      raw_signal: /signal_raw
+
+
+
