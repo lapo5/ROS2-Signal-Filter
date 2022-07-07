@@ -16,12 +16,11 @@ using namespace std::chrono_literals;
 
 class FilterSignal : public rclcpp::Node {
 
-  using Float32 = std_msgs::msg::Float32;
+using Float32 = std_msgs::msg::Float32;
 
 public: 
     enum FilteringTypes {
         Butterworth,
-        Slerp,
         Median,
         NoFilter
     };
@@ -42,9 +41,6 @@ public:
         if (signal_filtering_type.compare("butterworth") == 0){
             signal_filtering_mode = FilteringTypes::Butterworth;
         }
-        else if (signal_filtering_type.compare("slerp") == 0){
-            signal_filtering_mode = FilteringTypes::Slerp;
-        }
         else if (signal_filtering_type.compare("median") == 0){
             signal_filtering_mode = FilteringTypes::Median;
         }
@@ -60,15 +56,7 @@ public:
             
             N_measures = this->declare_parameter<int>("median_filter.n_samples", 10);
             std::cout << "[Signal Filter] Median Un-Implemented" << std::endl;
-        }
-
-        if (signal_filtering_mode == FilteringTypes::Slerp){
-            N_measures = this->declare_parameter<int>("slerp_filter.n_samples", 10);
-            std::cout << "[Signal Filter] Slerp Un-Implemented" << std::endl;
-        }
-
-        if (signal_filtering_mode == FilteringTypes::Median or signal_filtering_mode == FilteringTypes::Slerp){
-
+        
             for(int i = 0; i < N_measures; i++){
                 last_N_measures.push_back(0.0);
             }
@@ -95,7 +83,7 @@ public:
 private:
     void pose_raw_callback_(const Float32::SharedPtr msg) {
 
-        if (signal_filtering_mode == FilteringTypes::Median or signal_filtering_mode == FilteringTypes::Slerp)
+        if (signal_filtering_mode == FilteringTypes::Median)
         {
             last_N_measures[counter] = msg->data;
 
@@ -114,11 +102,18 @@ private:
                 filtered_signal.data =  msg->data;
             }
 
+            else if (signal_filtering_mode == FilteringTypes::Median){
+
+                auto m = last_N_measures.begin() + last_N_measures.size()/2;
+                std::nth_element(last_N_measures.begin(), m, last_N_measures.end());
+                filtered_signal.data = last_N_measures[last_N_measures.size()/2];
+            }
+
             signal_filter_pub_->publish(filtered_signal);
 
         }
 
-        if (signal_filtering_mode == FilteringTypes::Median or signal_filtering_mode == FilteringTypes::Slerp){
+        if (signal_filtering_mode == FilteringTypes::Median){
             counter = (counter + 1) % N_measures;
             if (counter == 0)
             {
